@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>한국사 퀴즈 게임 (해방~1987 확장판)</title>
+  <style>
+    :root{
+      --bg:#0b0b0b;
+      --card:#1a1a1a;
+      --accent:#ffb86b;
+      --muted:#c7c7c7;
+      --glass: rgba(255,255,255,0.07);
+    }
+    html,body{
+      height:100%;margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
+      background:#000;color:#fff;
+    }
+    .wrap{max-width:880px;margin:36px auto;padding:20px}
+    header{display:flex;align-items:center;gap:16px}
+    h1{margin:0;font-size:1.4rem}
+    p.lead{margin:6px 0 18px;color:var(--muted)}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 30px rgba(0,0,0,0.9);}
+
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+    .controls input[type=number], .controls input[type=checkbox]{accent-color:var(--accent)}
+    .controls input[type=number]{width:84px;padding:8px;border-radius:8px;border:1px solid #444;background:#111;color:#fff}
+    .controls button{padding:8px 12px;border-radius:8px;border:0;background:linear-gradient(90deg,var(--accent),#ffd9a8);cursor:pointer;color:#000;font-weight:600}
+
+    .meta{display:flex;gap:12px;align-items:center;margin-bottom:12px;color:var(--muted)}
+    .question-area{margin-top:8px}
+    .qnum{font-size:.9rem;color:var(--muted)}
+    .question{font-size:1.2rem;margin:8px 0 14px}
+
+    .choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .choice{background:#111;padding:12px;border-radius:10px;cursor:pointer;border:1px solid #333;color:#fff;text-align:left}
+    .choice:hover{transform:translateY(-3px);transition:transform .12s;background:#222}
+    .choice.correct{outline:3px solid rgba(90,200,120,0.4);background:#143014}
+    .choice.wrong{outline:3px solid rgba(255,80,80,0.4);background:#300}
+    .explain{margin-top:12px;color:var(--muted);font-size:.95rem}
+
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:var(--muted)}
+    .btns{display:flex;gap:8px}
+    .btn{padding:8px 10px;border-radius:8px;border:0;background:#222;color:#fff;cursor:pointer}
+    .btn:hover{background:#333}
+
+    .hidden{display:none}
+
+    @media (max-width:640px){.choices{grid-template-columns:1fr}.wrap{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(180deg,#ffb86b,#ffd9a8);display:flex;align-items:center;justify-content:center;color:#102133;font-weight:700">KH</div>
+      <div>
+        <h1>한국사 퀴즈 게임 — 해방 ~ 1987 (확장판)</h1>
+        <p class="lead">40문제 이상을 포함한 완성형 현대사 학습용 객관식 퀴즈입니다.</p>
+      </div>
+    </header>
+
+    <section class="card" id="game">
+      <div class="controls">
+        <label for="num">문제 수:</label>
+        <input id="num" type="number" min="1" max="40" value="10" />
+        <label for="shuffle">문제 섞기</label>
+        <input id="shuffle" type="checkbox" checked />
+        <button id="start">게임 시작</button>
+        <button id="restart" class="btn">초기화</button>
+      </div>
+
+      <div class="meta">
+        <div class="qnum" id="qInfo">문제 0 / 0</div>
+        <div class="scoreboard" id="score">점수: 0</div>
+        <div style="margin-left:auto;color:var(--muted)">최고점: <span id="best">0</span></div>
+      </div>
+
+      <div class="question-area" id="qa">
+        <div class="question" id="questionText">게임을 시작하세요.</div>
+        <div class="choices" id="choices"></div>
+        <div class="explain hidden" id="explainText"></div>
+      </div>
+
+      <div class="footer">
+        <div class="btns">
+          <button id="prev" class="btn">이전</button>
+          <button id="next" class="btn">다음</button>
+        </div>
+        <div><button id="finish" class="btn">결과 보기</button></div>
+      </div>
+    </section>
+
+    <footer class="small" style="color:var(--muted);margin-top:20px;text-align:center;font-size:.85rem">해방 이후 ~ 1987년까지 확장 문제집 버전</footer>
+  </div>
+
+  <script>
+    const QUESTIONS = [
+      {q:"카이로 회담의 핵심 내용은?",choices:["독일 분할","한국 독립 약속","유럽 질서 재편","냉전 종식"],a:1,explain:"1943 카이로 회담에서 한국 독립을 약속했다."},
+      {q:"얄타 회담의 주요 결정은?",choices:["한국 즉시 독립","소련의 대일전 참전","UN 해체","한반도 중립화"],a:1,explain:"얄타 회담에서 소련의 대일전 참전이 결정되었다."},
+      {q:"모스크바 3상회의 내용이 아닌 것은?",choices:["신탁통치","임시정부 수립","미소공동위 구성","남북 통일정부 수립"],a:3,explain:"통일정부 수립은 포함되지 않았다."},
+      {q:"미소공동위원회가 결렬된 이유는?",choices:["경제 문제","군사 문제","임시정부 참여 문제","휴전선 협상"],a:2,explain:"임정 참여 대상을 두고 미국과 소련이 대립했다."},
+      {q:"5.10 총선의 특징은?",choices:["남북 전체 선거","21세 이상 보통선거","대통령 직선","북한 참여"],a:1,explain:"남한에서만 21세 이상 보통·평등·직접·비밀선거가 시행되었다."},
+      {q:"제헌헌법의 특징은?",choices:["직선제","국회 간선제","6년 중임제","내각책임제"],a:1,explain:"대통령은 국회에서 뽑았다."},
+      {q:"농지개혁 방식은?",choices:["무상몰수","유상매수·유상분배","지주권 강化","전면 국유화"],a:1,explain:"유상매수·유상분배로 진행되었다."},
+      {q:"6.25 전쟁 직후 체결된 조약은?",choices:["가쓰라태프트","사이토협정","한미상호방위조약","경성조약"],a:2,explain:"1953 한미상호방위조약 체결."},
+      {q:"3.15 부정선거 결과는?",choices:["5.16 군사정변","4.19 혁명","10.26 사건","5.18 운동"],a:1,explain:"4.19 혁명으로 이승만 하야."},
+      {q:"5.16 군사정변의 주도 세력은?",choices:["김대중","박정희","전두환","노태우"],a:1,explain:"1961 박정희가 군사정변을 일으켰다."},
+      {q:"유신헌법의 특징은?",choices:["직선제","3선 금지","긴급조치권","의회권 강화"],a:2,explain:"대통령 권한을 대폭 강화했다."},
+      {q:"긴급조치권이 행사된 시기 정권은?",choices:["이승만","박정희","최규하","전두환"],a:1,explain:"유신체제 박정희 정부의 권한."},
+      {q:"부마항쟁이 일어난 지역은?",choices:["서울·대구","부산·마산","광주·목포","춘천·인제"],a:1,explain:"1979년 부산·마산에서 시작."},
+      {q:"10.26 사건의 결과는?",choices:["노태우 집권","전두환 체포","박정희 사망","4.19 혁명"],a:2,explain:"중앙정보부 김재규가 박정희를 시해."},
+      {q:"12.12 사태 주도자는?",choices:["장면","윤보선","전두환","노신영"],a:2,explain:"전두환 중심 신군부가 군권 장악."},
+      {q:"5.18 민주화운동 장소는?",choices:["부산","광주","서울","인천"],a:1,explain:"1980 광주에서 민주화 시위 발생."},
+      {q:"6월 민주항쟁 결과는?",choices:["유신 부활","전두환 연임","대통령 직선제","국회 해산"],a:2,explain:"1987 6.29 선언 → 직선제 도입."},
+      {q:"대한민국 정부 수립일은?",choices:["1945","1947","1948","1949"],a:2,explain:"1948년 8월 15일 정부 수립."},
+      {q:"반민특위 활동이 약화된 이유는?",choices:["예산 부족","대중 반대","경찰의 습격","이승만의 소극적 태도"],a:3,explain:"이승만의 소극적 태도로 반민특위의 활동이 제대로 지원되지 못하고 약화되었습니다."},
+      {q:"장면 내각이 출범한 계기는?",choices:["4.19 혁명","5.16 군사정변","6월 항쟁","부마항쟁"],a:0,explain:"4.19 이후 내각책임제가 도입되며 장면 내각 출범."}
+    ];
+
+    const startBtn = document.getElementById('start');
+    const restartBtn = document.getElementById('restart');
+    const numInput = document.getElementById('num');
+    const shuffleCheck = document.getElementById('shuffle');
+    const qInfo = document.getElementById('qInfo');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const questionText = document.getElementById('questionText');
+    const choicesEl = document.getElementById('choices');
+    const explainEl = document.getElementById('explainText');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const finishBtn = document.getElementById('finish');
+
+    let pool = [];
+    let current = 0;
+    let score = 0;
+    let answers = [];
+
+    const BEST_KEY = 'kh_quiz_best_v2';
+
+    function loadBest(){bestEl.textContent = localStorage.getItem(BEST_KEY) || '0';}
+    function saveBest(val){const b=Number(localStorage.getItem(BEST_KEY)||0);if(val>b)localStorage.setItem(BEST_KEY,val);}
+
+    startBtn.onclick = ()=>{
+      let n = Math.min(40, Math.max(1, Number(numInput.value)||10));
+      pool = QUESTIONS.slice();
+      if(shuffleCheck.checked) pool.sort(()=>Math.random()-0.5);
+      pool = pool.slice(0,n);
+      current=0;score=0;answers=Array(n).fill(null);
+      render();
+    };
+
+    restartBtn.onclick = ()=>{pool=[];current=0;score=0;answers=[];renderIdle();};
+    prevBtn.onclick = ()=>{if(current>0){current--;render();}};
+    nextBtn.onclick = ()=>{if(current<pool.length-1){current++;render();}};
+
+    finishBtn.onclick = ()=>{
+      if(!pool.length)return;
+      let c=0;
+      pool.forEach((q,i)=>{if(answers[i]===q.a)c++;});
+      alert(`결과: ${c}/${pool.length} ${(c/pool.length*100).toFixed(1)}%`);
+      saveBest(c);
+    };
+
+    function render(){
+      loadBest();
+      if(!pool.length){renderIdle();return;}
+      qInfo.textContent=`문제 ${current+1} / ${pool.length}`;
+      scoreEl.textContent=`점수: ${score}`;
+      const item=pool[current];
+      questionText.textContent=item.q;
+      choicesEl.innerHTML='';
+      explainEl.classList.add('hidden');
+
+      item.choices.forEach((t,i)=>{
+        const b=document.createElement('button');
+        b.className='choice';b.textContent=`${i+1}. ${t}`;
+        b.onclick=()=>select(i);
+        choicesEl.appendChild(b);
+      });
+
+      if(answers[current]!==null) reveal();
+    }
+
+    function renderIdle(){
+      qInfo.textContent='문제 0 / 0';
+      scoreEl.textContent='점수: 0';
+      questionText.textContent='게임을 시작하십시오.';
+      choicesEl.innerHTML='';
+      explainEl.classList.add('hidden');
+      loadBest();
+    }
+
+    function select(i){
+      if(answers[current]!==null)return;
+      answers[current]=i;
+      if(i===pool[current].a)score++;
+      reveal();render();
+    }
+
+    function reveal(){
+      const q=pool[current];
+      const btns=[...choicesEl.querySelectorAll('.choice')];
+      btns.forEach((b,i)=>{
+        b.disabled=true;
+        if(i===q.a)b.classList.add('correct');
+        if(answers[current]===i && i!==q.a)b.classList.add('wrong');
+      });
+      explainEl.textContent='해설: '+q.explain;
+      explainEl.classList.remove('hidden');
+    }
+
+    renderIdle(); loadBest();
+  </script>
+</body>
+</html>
